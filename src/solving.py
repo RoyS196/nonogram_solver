@@ -50,8 +50,9 @@ def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
     if line_clues.is_empty():
         new_line[:] = 0
 
+    # Fill in subblocks if blocks larger then leeway: line_length - sum of blocks - no. necessary 0's seperating blocks
     else:
-        # loop through block in normal order to determine the start of subblocks
+        # loop through blocks in normal order to determine the end of subblocks
         subblock_end_list = []
         subblock_end = 0
         prev_block_color = 0
@@ -66,6 +67,8 @@ def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
         subblock_start_list = []
         subblock_start = 0
         prev_block_color = 0
+
+        # loop through blocks in reverse order to determine the start of subblocks
         for block_size, block_color in reversed(line_clues):
             if block_color == prev_block_color:
                 subblock_start -= 1
@@ -75,11 +78,12 @@ def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
             prev_block_color = block_color
         subblock_start_list.reverse()
 
+        # fill in subblocks if start<end
         block_colors = line_clues.block_colors
         for i, subblock_start in enumerate(subblock_start_list):
             new_line[subblock_start:subblock_end_list[i]] = block_colors[i]
 
-        if new_line[0] != -1:  # no leeway, since the first square is filled in (not -1)
+        if new_line[0] != -1:  # no leeway, since the first value is not -1 (and thus filled in)
             new_line[new_line == -1] = 0
 
     update_current_line(new_line=new_line, current_line=current_line)
