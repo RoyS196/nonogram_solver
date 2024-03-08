@@ -199,7 +199,3 @@ class NonogramGrid():
     def instantiate_empty_grid(cls, n_row, n_col):
         grid_array = np.full((n_row, n_col), -1)
         return cls(grid_array=grid_array)
-
-
-if __name__ == "__main__":
-    pass
