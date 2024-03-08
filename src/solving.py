@@ -51,45 +51,35 @@ def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
         new_line[:] = 0
 
     else:
-        block_sizes = line_clues.block_sizes
-        n_colors = line_clues.n_colors
+        # loop through block in normal order to determine the start of subblocks
+        subblock_end_list = []
+        subblock_end = 0
+        prev_block_color = 0
+        for block_size, block_color in line_clues:
+            if block_color == prev_block_color:
+                subblock_end += 1
 
-        if n_colors == 1:
-            leeway = line_length - sum(block_sizes) - len(block_sizes) + 1
-        else:
-            leeway = line_length - sum(block_sizes)
+            subblock_end += block_size
+            subblock_end_list.append(subblock_end)
+            prev_block_color = block_color
 
-        # If largest block is bigger then leeway, loop through all blocks
-        if max(block_sizes) > leeway:
-            logging.debug(f"Block leeway loop started. Block_sizes: {block_sizes}, block_colors: {line_clues.block_colors}, leeway: {leeway}.")
+        subblock_start_list = []
+        subblock_start = 0
+        prev_block_color = 0
+        for block_size, block_color in reversed(line_clues):
+            if block_color == prev_block_color:
+                subblock_start -= 1
 
-            if n_colors == 1:
-                subblock_first = leeway
-                subblock_last = -1
-            else:
-                subblock_first = leeway
-                subblock_last = 0
+            subblock_start -= block_size
+            subblock_start_list.append(subblock_start)
+            prev_block_color = block_color
+        subblock_start_list.reverse()
 
-            # If block larger then leeway, a subblock can be entered in new_line
-            for block_size, block_color in line_clues:
-                if n_colors == 1:
-                    subblock_last += block_size + 1
-                else:
-                    subblock_last += block_size
+        block_colors = line_clues.block_colors
+        for i, subblock_start in enumerate(subblock_start_list):
+            new_line[subblock_start:subblock_end_list[i]] = block_colors[i]
 
-                logging.debug(f"subblock_first: {subblock_first}, subblock_last: {subblock_last}")
-
-                if block_size > leeway:  # TODO: can be removed (new_line[a:b] for a>=b does not write anything?)
-                    logging.debug(f"writing block_color: {block_color}")
-                    new_line[subblock_first:subblock_last] = block_color
-
-                if n_colors == 1:
-                    subblock_first += block_size + 1
-                else:
-                    subblock_first += block_size
-
-        if leeway == 0:
-            logging.debug(f"leeway == 0. Replacing all -1's with 0's for new_line: {new_line}")
+        if new_line[0] != -1:  # no leeway, since the first square is filled in (not -1)
             new_line[new_line == -1] = 0
 
     update_current_line(new_line=new_line, current_line=current_line)

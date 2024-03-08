@@ -61,6 +61,8 @@ class TestClass:
     result_no_overlap = np.full(shape=(10,), fill_value=-1)
     line_clues_colored = LineClues(block_sizes=(4, 1, 3), line_length=10, block_colors=[1, 2, 3])
     result_colored = np.array(object=[-1, -1, 1, 1, -1, -1, -1, 3, -1, -1])
+    line_clues_colored_repeating = LineClues(block_sizes=(4, 1, 3), line_length=10, block_colors=[1, 1, 2])
+    result_colored_repeating = np.array(object=[-1, 1, 1, 1, -1, -1, -1, 2, 2, -1])
 
     @pytest.mark.parametrize("line_clues, current_line, result",
                              [(line_clues_zeros, current_line_empty, result_zeros),
@@ -68,7 +70,8 @@ class TestClass:
                               (line_clues_full, current_line_empty, result_full),
                               (line_clues_overlap, current_line_empty, result_overlap),
                               (line_clues_no_overlap, current_line_empty, result_no_overlap),
-                              (line_clues_colored, current_line_empty, result_colored)
+                              (line_clues_colored, current_line_empty, result_colored),
+                              (line_clues_colored_repeating, current_line_empty, result_colored_repeating)
                               ])
     def test_line_leeway_method(self, line_clues, current_line, result):
         current_line_copy = current_line.copy()
