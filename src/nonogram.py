@@ -14,13 +14,13 @@ class LineClues:  # TODO: lists -> tuple
         if block_colors is None:
             block_colors = (1,) * len(block_sizes)
 
-        if not all(isinstance(i, int) for i in block_sizes):
-            msg = "line_clues argument must be list of integers"
+        if not all(isinstance(i, (int, np.integer)) for i in block_sizes):
+            msg = "line_clues argument must be tuple of integers"
             logging.error(msg)
             raise TypeError(msg)
 
-        if not all(isinstance(i, int) for i in block_colors):
-            msg = "line_colors optional argument must be list of integers"
+        if not all(isinstance(i, (int, np.integer)) for i in block_colors):
+            msg = "line_colors optional argument must be tuple of integers"
             logging.error(msg)
             raise TypeError(msg)
 
@@ -124,11 +124,11 @@ class Nonogram:  # TODO: line_clues_list -> line_clues_tuple
 
     # TODO: temporary
     def __str__(self):
-        return f"Column clues: {str(self.col_clues_tuple)} \nRow clues: {str(self.row_clues_tuple)}"
+        return f"Row clues: {str(self.row_clues_tuple)}.\nColumn clues: {str(self.col_clues_tuple)}"
 
     # TODO: temporary
     def __repr__(self):
-        return f"Column clues: {str(self.col_clues_tuple)} \nRow clues: {str(self.row_clues_tuple)}"
+        return f"Row clues: {str(self.row_clues_tuple)}.\nColumn clues: {str(self.col_clues_tuple)}"
 
     # TODO: function description
     def get_row_clues(self, i: int):
