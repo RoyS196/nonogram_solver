@@ -89,17 +89,11 @@ class TestClass:
 
     # TODO: hardcode example grids, or test helper functions
     grid_empty = NonogramGrid.instantiate_empty_grid(n_row=15, n_col=10)
-    grid_monalisa = helpers.obtain_grid_from_csv(
-        filename=f"{project_folder}/tests/test_files/grid_monalisa.csv",
-        delimiter=",")
-    grid_monalisa_leeway = helpers.obtain_grid_from_csv(
-        filename=f"{project_folder}/tests/test_files/grid_monalisa_leeway.csv",
-        delimiter=",")
-    nonogram_monalisa = helpers.obtain_nonogram_from_grid(nonogram_grid=grid_monalisa)
+    grid_complete = helpers.obtain_grid_from_csv(filename=f"{project_folder}/tests/test_files/grid_monalisa.csv")
+    grid_leeway = helpers.obtain_grid_from_csv(filename=f"{project_folder}/tests/test_files/grid_monalisa_leeway.csv")
+    nonogram = helpers.obtain_nonogram_from_grid(nonogram_grid=grid_complete)
 
-    @pytest.mark.parametrize("nonogram, current_grid, result",
-                             [(nonogram_monalisa, grid_empty, grid_monalisa_leeway),
-                              ])
+    @pytest.mark.parametrize("nonogram, current_grid, result", [(nonogram, grid_empty, grid_leeway)])
     def test_grid_leeway_method(self, nonogram: Nonogram, current_grid: NonogramGrid, result: NonogramGrid):
         current_grid_copy = copy(current_grid)
 

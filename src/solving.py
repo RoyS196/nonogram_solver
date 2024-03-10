@@ -6,8 +6,19 @@ from queue import PriorityQueue, Empty
 from nonogram import LineClues, Nonogram, NonogramGrid
 
 
-# Checks potential line (does not need to be complete) against current line. Returns true if potential line is possible, false if not
 def check_potential_line(potential_line: np.ndarray, current_line: np.ndarray) -> bool:
+    """Checks a potential line against a current line. Returns True if lines are compatible, returns False if the
+    potential line is not possible given the current line. The potential line is not compatible with the current line
+    ONLY IF any of its values unequal to -1 are not identical to the corresponding values of the current line AND the
+    corresponding values of the current line are not -1.
+
+    Args:
+        potential_line: the line (1d array) which is checked against current_line.
+        current_line: the line (1d array) against which potential_line is checked.
+
+    Returns:
+        boolean corresponding to whether potential_line is possible given current_line.
+    """
     comparison_line = current_line.copy()
     comparison_line[comparison_line == -1] = potential_line[comparison_line == -1]
 
@@ -19,7 +30,20 @@ def check_potential_line(potential_line: np.ndarray, current_line: np.ndarray) -
 
 # TODO: update current_line or return new line
 def update_current_line(new_line: np.ndarray, current_line: np.ndarray) -> None:
-    # TODO: might be unecessary to check line
+    """Updates current line based on new information from new line, if the new line is compatible with the current
+    line. It does so by only setting all values of -1 of the current line to the corresponding values of the new line,
+    ignoring all values unequal to -1 of the current line.
+
+    Args:
+        new_line: the line (1d array) that is used to update current_line.
+        current_line: the line (1d array) that is updated.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: if new_line contradicts current_line.
+    """
     if check_potential_line(potential_line=new_line, current_line=current_line):
         current_line[current_line == -1] = new_line[current_line == -1]
     else:
@@ -28,8 +52,17 @@ def update_current_line(new_line: np.ndarray, current_line: np.ndarray) -> None:
         raise ValueError(msg)
 
 
-# TODO: function description
 def obtain_lines_intersection(list_lines: list[np.ndarray]) -> np.ndarray:
+    """Obtains an intersection line from a list of equally sized lines. If all lines from the list have an identical
+    value at a specific position, the returned intersection line has this values at the corresponding position.
+    Elsewhere this returned intersection line has value -1.
+
+    Args:
+        list_lines: list of lines (1d arrays) from which an intersection line is returned.
+
+    Returns:
+        intersection line (1d array).
+    """
     potential_squares_array = np.array(list_lines).T
     line_length = potential_squares_array.shape[0]
     intersection_line = np.full((line_length,), -1)
@@ -41,23 +74,35 @@ def obtain_lines_intersection(list_lines: list[np.ndarray]) -> np.ndarray:
     return intersection_line
 
 
-# TODO: function description
 def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
-    logging.debug(f"FUNCTION: line_leeway_method, line_clues: {line_clues}, current_line: {current_line}")
+    """Updates current line based on line clues using the leeway method. The 'leeway' of a block/line is the number of
+    squares can we move a block, based only on the line clues and line length. If the block is larger then its leeway
+    squares can be filled in, without any other information about the grid. To update the line based this method loops
+    twice through all blocks (once in reverse) to determine the squares that can be filled in.
+
+    Args:
+        line_clues: LineClues object, that contains the block sizes, block colors and line length.
+        current_line: line (1d array) that is updated using the leeway method.
+
+    Returns:
+        None
+    """
     line_length = line_clues.line_length
     new_line = np.full((line_length,), -1)
 
-    # If no clues, update all values to zeroes
+    # If there are no blocks in the line, the updated line should be empty
     if line_clues.is_empty():
         new_line[:] = 0
 
     # Fill in subblocks if blocks larger then leeway: line_length - sum of blocks - no. necessary 0's seperating blocks
     else:
-        # loop through blocks in normal order to determine the end of subblocks
         subblock_end_list = []
         subblock_end = 0
         prev_block_color = 0
+
+        # loop through blocks in normal order to determine the end of the subblocks
         for block_size, block_color in line_clues:
+            # If successive blocks are the same color, there is a necessary separating 0
             if block_color == prev_block_color:
                 subblock_end += 1
 
@@ -69,14 +114,15 @@ def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
         subblock_start = 0
         prev_block_color = 0
 
-        # loop through blocks in reverse order to determine the start of subblocks
+        # loop through blocks in reverse order to determine the start of the subblocks
         for block_size, block_color in reversed(line_clues):
+            # If successive blocks are the same color, there is a necessary separating 0
             if block_color == prev_block_color:
                 subblock_start -= 1
-
             subblock_start -= block_size
             subblock_start_list.append(subblock_start)
             prev_block_color = block_color
+
         subblock_start_list.reverse()
 
         # fill in subblocks if start<end
@@ -84,27 +130,34 @@ def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
         for i, subblock_start in enumerate(subblock_start_list):
             new_line[subblock_start:subblock_end_list[i]] = block_colors[i]
 
-        if new_line[0] != -1:  # no leeway, since the first value is not -1 (and thus filled in)
+        # no leeway, since the first value is not -1, hence fill in separating 0's
+        if new_line[0] != -1:
             new_line[new_line == -1] = 0
 
     update_current_line(new_line=new_line, current_line=current_line)
 
 
-# TODO: function description
 def grid_leeway_method(nonogram: Nonogram, current_grid: NonogramGrid) -> None:
-    logging.info(f"FUNCTION: grid_leeway_method. nonogram: {nonogram}, current_grid {current_grid}")
+    """Updates nonogram grid by applying line_leeway_method on every row/column of nonogram grid, using all line clues
+    of a nonogram.
+
+    Args:
+        nonogram: Nonogram object containing all LineClues object of nonogram
+        current_grid: NonogramGrid object containing the nonogram grid (np array) that is updated
+
+    Returns:
+        None
+    """
     n_row, n_col = nonogram.n_row, nonogram.n_col
 
     for i in range(0, n_row):
         current_row = current_grid.get_row(i)
         row_clues = nonogram.get_row_clues(i)
-        logging.debug(f"current_row: {current_row}, row_clues: {row_clues}")
         line_leeway_method(line_clues=row_clues, current_line=current_row)
 
     for j in range(0, n_col):
         current_col = current_grid.get_col(j)
         col_clues = nonogram.get_col_clues(j)
-        logging.debug(f"current_row: {current_col}, row_clues: {col_clues}")
         line_leeway_method(line_clues=col_clues, current_line=current_col)
 
 
