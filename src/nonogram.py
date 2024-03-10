@@ -160,40 +160,37 @@ class NonogramGrid():
         self.n_col = self.grid_array.shape[1]
         self.shape = self.grid_array.shape
 
-        # Temporary: print grid
-        solution_string = grid_array.astype(dtype=str)
-        solution_string[solution_string == "-1"] = "_"
-        solution_string[solution_string == "0"] = "."
-        solution_string[solution_string == "1"] = "#"  # everything > 1: print normally
-        self.solution_string = solution_string
-
     # TODO: temporary
     def __str__(self):
-        return str(self.solution_string)
+        return str(self.grid_array)
 
     # TODO: function description
-    def set_row(i: int, line_step_array: np.ndarray):
-        pass  # TODO
+    def __copy__(self):
+        return NonogramGrid(grid_array=self.grid_array.copy())
 
     # TODO: function description
-    def set_col(j: int, line_step_array: np.ndarray):
-        pass  # TODO
+    def set_row(self, i: int, row_array: np.ndarray):
+        self.grid_array[i, :] = row_array
 
     # TODO: function description
-    def set_value(row_col_ij: tuple[int, int], value: int):
-        pass  # TODO
+    def set_col(self, j: int, col_array: np.ndarray):
+        self.grid_array[:, j] = col_array
 
     # TODO: function description
-    def get_row(i: int, line_step_array: np.ndarray):
-        pass  # TODO
+    def set_value(self, row_col_ij: tuple[int, int], value: int):
+        self.grid_array[row_col_ij] = value
 
     # TODO: function description
-    def get_col(j: int, line_step_array: np.ndarray):
-        pass  # TODO
+    def get_row(self, i: int):
+        return self.grid_array[i, :]
 
     # TODO: function description
-    def get_value(row_col_ij: tuple[int, int], value: int):
-        pass  # TODO
+    def get_col(self, j: int):
+        return self.grid_array[:, j]
+
+    # TODO: function description
+    def get_value(self, row_col_ij: tuple[int, int]):
+        return self.grid_array[row_col_ij]
 
     @classmethod
     def instantiate_empty_grid(cls, n_row, n_col):

@@ -1,8 +1,9 @@
-from nonogram import LineClues, Nonogram, NonogramGrid
-from itertools import combinations
 import numpy as np
 import logging
+from itertools import combinations
 from queue import PriorityQueue, Empty
+
+from nonogram import LineClues, Nonogram, NonogramGrid
 
 
 # Checks potential line (does not need to be complete) against current line. Returns true if potential line is possible, false if not
@@ -89,23 +90,25 @@ def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
     update_current_line(new_line=new_line, current_line=current_line)
 
 
+# TODO: function description
+def grid_leeway_method(nonogram: Nonogram, current_grid: NonogramGrid) -> None:
+    logging.info(f"FUNCTION: grid_leeway_method. nonogram: {nonogram}, current_grid {current_grid}")
+    n_row, n_col = nonogram.n_row, nonogram.n_col
+
+    for i in range(0, n_row):
+        current_row = current_grid.get_row(i)
+        row_clues = nonogram.get_row_clues(i)
+        logging.debug(f"current_row: {current_row}, row_clues: {row_clues}")
+        line_leeway_method(line_clues=row_clues, current_line=current_row)
+
+    for j in range(0, n_col):
+        current_col = current_grid.get_col(j)
+        col_clues = nonogram.get_col_clues(j)
+        logging.debug(f"current_row: {current_col}, row_clues: {col_clues}")
+        line_leeway_method(line_clues=col_clues, current_line=current_col)
+
+
 # Everything below: no tests yet
-# # TODO: function description
-# def grid_leeway_method(nonogram: Nonogram, current_grid: NonogramGrid) -> None:
-#     n_row, n_col = nonogram.n_row, nonogram.n_col
-
-#     for i in range(0, n_row):
-#         current_row = current_grid.get_row(i)
-#         row_clues = nonogram.get_row_clues(i)
-#         line_leeway_method(line_clues=row_clues, current_line=current_row)
-
-#     for j in range(0, n_col):
-#         current_col = current_grid.get_col(j)
-#         col_clues = nonogram.get_col_clues(j)
-#         line_leeway_method(line_clues=col_clues, current_line=current_col)
-
-
-# # TODO: function description
 # def calculate_initial_line_priority(line_clues: LineClues, current_line: np.ndarray = None) -> float:
 #     priority = line_clues.line_length - line_clues.min_length  # leeway
 #     if current_line is not None:

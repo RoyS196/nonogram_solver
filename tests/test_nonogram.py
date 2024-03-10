@@ -1,7 +1,12 @@
+import numpy as np
+import pytest
+import os
+from copy import copy
+from pathlib import Path
+
+import src.helpers as helpers
 import src.solving as solving
 from src.nonogram import Nonogram, NonogramGrid, LineClues
-import pytest
-import numpy as np
 
 
 class TestClass:
@@ -9,6 +14,8 @@ class TestClass:
     # TODO: multiple colors testing
     # TODO: test errors?
     # TODO: seperate file for test input?
+
+    project_folder = Path(os.path.realpath(__file__)).parent.parent
 
     # Normal test cases for line check and line update
     line_check_empty = np.full(shape=(5,), fill_value=-1)
@@ -79,3 +86,23 @@ class TestClass:
         solving.line_leeway_method(line_clues=line_clues, current_line=current_line_copy)
 
         np.testing.assert_array_equal(current_line_copy, result)
+
+    # TODO: hardcode example grids, or test helper functions
+    grid_empty = NonogramGrid.instantiate_empty_grid(n_row=15, n_col=10)
+    grid_monalisa = helpers.obtain_grid_from_csv(
+        filename=f"{project_folder}/tests/test_files/grid_monalisa.csv",
+        delimiter=",")
+    grid_monalisa_leeway = helpers.obtain_grid_from_csv(
+        filename=f"{project_folder}/tests/test_files/grid_monalisa_leeway.csv",
+        delimiter=",")
+    nonogram_monalisa = helpers.obtain_nonogram_from_grid(nonogram_grid=grid_monalisa)
+
+    @pytest.mark.parametrize("nonogram, current_grid, result",
+                             [(nonogram_monalisa, grid_empty, grid_monalisa_leeway),
+                              ])
+    def test_grid_leeway_method(self, nonogram: Nonogram, current_grid: NonogramGrid, result: NonogramGrid):
+        current_grid_copy = copy(current_grid)
+
+        solving.grid_leeway_method(nonogram=nonogram, current_grid=current_grid_copy)
+
+        np.testing.assert_array_equal(current_grid_copy.grid_array, result.grid_array)
