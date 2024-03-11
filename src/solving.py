@@ -6,87 +6,114 @@ from queue import PriorityQueue, Empty
 from nonogram import LineClues, Nonogram, NonogramGrid
 
 
-def check_potential_line(potential_line: np.ndarray, current_line: np.ndarray) -> bool:
-    """Checks a potential line against a current line. Returns True if lines are compatible, returns False if the
-    potential line is not possible given the current line. The potential line is not compatible with the current line
-    ONLY IF any of its values unequal to -1 are not identical to the corresponding values of the current line AND the
-    corresponding values of the current line are not -1.
+def check_arrays_compatibility(array_1: np.ndarray, array_2: np.ndarray) -> bool:
+    """Returns True if numpy arrays are 'compatible', returns False otherwise.
+
+    The arrays are compatible if and only if all values of array_1 are equal to the corresponding values of array_2,
+    ignoring all values that are equal to -1 in one of the two arrays.
 
     Args:
-        potential_line: the line (1d array) which is checked against current_line.
-        current_line: the line (1d array) against which potential_line is checked.
+        array_1 (np.ndarray): the numpy array which is checked against array_2.
+        array_2 (np.ndarray): the numpy array which is checked against array_1.
 
     Returns:
-        boolean corresponding to whether potential_line is possible given current_line.
-    """
-    comparison_line = current_line.copy()
-    comparison_line[comparison_line == -1] = potential_line[comparison_line == -1]
+        A boolean corresponding to whether the arrays are compatible.
 
-    # Also do a "reverse check" in case potential line is not a complete line
-    potential_line_copy = potential_line.copy()
-    potential_line_copy[potential_line_copy == -1] = comparison_line[potential_line_copy == -1]
-    return np.array_equal(potential_line_copy, comparison_line)
+    Raises:
+        ValueError: if the shape of array_1 and array_2 are not equal.
+    """
+    # Copy arrays to prevent mutating the original
+    array_1_copy = array_1.copy()
+    array_2_copy = array_2.copy()
+
+    # Change every value of -1 to the corresponding value of the other array
+    array_1_copy[array_1_copy == -1] = array_2[array_1_copy == -1]
+    array_2_copy[array_2_copy == -1] = array_1[array_2_copy == -1]
+
+    return np.array_equal(array_1_copy, array_2_copy)
 
 
 # TODO: update current_line or return new line
-def update_current_line(new_line: np.ndarray, current_line: np.ndarray) -> None:
-    """Updates current line based on new information from new line, if the new line is compatible with the current
-    line. It does so by only setting all values of -1 of the current line to the corresponding values of the new line,
-    ignoring all values unequal to -1 of the current line.
+def update_array_values(base_array: np.ndarray, array_update: np.ndarray) -> None:
+    """Updates all values equal to -1 of numpy array to corresponding values of other numpy array.
 
     Args:
-        new_line: the line (1d array) that is used to update current_line.
-        current_line: the line (1d array) that is updated.
+        base_array (np.ndarray): the array whose values are updated.
+        array_update: the array from which values are used to update array.
 
     Returns:
         None
 
     Raises:
-        ValueError: if new_line contradicts current_line.
+        ValueError: if the shape of base_array and array_update are not equal.
+        ValueError: if base_array and array_update are not compatible based on check_arrays_compatibility function.
     """
-    if check_potential_line(potential_line=new_line, current_line=current_line):
-        current_line[current_line == -1] = new_line[current_line == -1]
-    else:
-        msg = "new_line not compatible with current_line. Cannot update current_line."
+    if not base_array.shape == array_update.shape:
+        msg = f"""Cannot update base_update. Shape of base_array {base_array.shape} not equal to shape of array_update
+        {array_update.shape}."""
+        logging.error(msg)
+        raise ValueError(msg)
+    if not check_arrays_compatibility(array_1=base_array, array_2=array_update):
+        msg = "Cannot update base_update. base_array not compatible with array_update."
         logging.error(msg)
         raise ValueError(msg)
 
+    base_array[base_array == -1] = array_update[base_array == -1]
 
-def obtain_lines_intersection(list_lines: list[np.ndarray]) -> np.ndarray:
-    """Obtains an intersection line from a list of equally sized lines. If all lines from the list have an identical
-    value at a specific position, the returned intersection line has this values at the corresponding position.
-    Elsewhere this returned intersection line has value -1.
+
+def obtain_arrays_intersection(list_arrays: list[np.ndarray]) -> np.ndarray:
+    """Obtains a numpy (intersection) array from a list of equally sized numpy arrays.
+
+    If a value at a specific position is equal for all arrays in the list, then the corresponding value in the
+    intersection array is equal to this value. All other values in the intersection array are equal to -1.
 
     Args:
-        list_lines: list of lines (1d arrays) from which an intersection line is returned.
+        list_arrays (list[np.ndarray]): list of arrays from which an intersection array is returned.
 
     Returns:
-        intersection line (1d array).
+        A numpy array with values -1 or values which are equal for all arrays in list_arrays.
+
+    Raises:
+        ValueError: if the shapes of all arrays in list_arrays are not equal.
     """
-    potential_squares_array = np.array(list_lines).T
-    line_length = potential_squares_array.shape[0]
-    intersection_line = np.full((line_length,), -1)
+    if not all(list_arrays[0].shape == array.shape for array in list_arrays):
+        msg = "Shapes of all arrays in list_arrays are not equal."
+        logging.error(msg)
+        raise ValueError(msg)
 
-    for i, potential_squares in enumerate(potential_squares_array):
+    comparison_array = np.array(list_arrays).T
+    line_length = comparison_array.shape[0]
+    intersection_array = np.full((line_length,), -1)
+
+    for i, potential_squares in enumerate(comparison_array):
         if np.all(potential_squares == potential_squares[0]):
-            intersection_line[i] = potential_squares[0]
+            intersection_array[i] = potential_squares[0]
 
-    return intersection_line
+    return intersection_array
 
 
-def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
-    """Updates current line based on line clues using the leeway method. The 'leeway' of a block/line is the number of
-    squares can we move a block, based only on the line clues and line length. If the block is larger then its leeway
-    squares can be filled in, without any other information about the grid. To update the line based this method loops
-    twice through all blocks (once in reverse) to determine the squares that can be filled in.
+def line_leeway_solving_method(line_array: np.ndarray, line_clues: LineClues) -> None:
+    """Updates line (1d) array based on nonogram line clues using the leeway solving method.
+
+    The 'leeway' of a block/line in a nonogram is the number of squares a block can move, based only on the line clues
+    and line length. If the block is larger then its leeway squares can be filled in, without any other information
+    about the grid.
 
     Args:
-        line_clues: LineClues object, that contains the block sizes, block colors and line length.
-        current_line: line (1d array) that is updated using the leeway method.
+        line_array (np.ndarray): line array that is updated using the leeway solving method.
+        line_clues (LineClues): object that contains the block sizes, block colors and line length.
 
     Returns:
         None
+
+    Raises:
+        ValueError: if the line_array is not a 1-dimensional array
     """
+    if line_array.ndim != 1:
+        msg = "line_array is not a 1-dimensional array."
+        logging.error(msg)
+        raise ValueError(msg)
+
     line_length = line_clues.line_length
     new_line = np.full((line_length,), -1)
 
@@ -125,6 +152,7 @@ def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
 
         subblock_start_list.reverse()
 
+        # TODO: merge 3rd loop in one of the other loops
         # fill in subblocks if start<end
         block_colors = line_clues.block_colors
         for i, subblock_start in enumerate(subblock_start_list):
@@ -134,16 +162,15 @@ def line_leeway_method(line_clues: LineClues, current_line: np.ndarray) -> None:
         if new_line[0] != -1:
             new_line[new_line == -1] = 0
 
-    update_current_line(new_line=new_line, current_line=current_line)
+    update_array_values(base_array=line_array, array_update=new_line)
 
 
-def grid_leeway_method(nonogram: Nonogram, current_grid: NonogramGrid) -> None:
-    """Updates nonogram grid by applying line_leeway_method on every row/column of nonogram grid, using all line clues
-    of a nonogram.
+def grid_leeway_solving_method(current_grid: NonogramGrid, nonogram: Nonogram) -> None:
+    """Updates nonogram grid using the leeway solving method on every row/column of nonogram grid.
 
     Args:
-        nonogram: Nonogram object containing all LineClues object of nonogram
-        current_grid: NonogramGrid object containing the nonogram grid (np array) that is updated
+        nonogram (Nonogram): object containing all LineClues objects for all rows/columns
+        current_grid (NonogramGrid): object containing the nonogram grid_array that is updated.
 
     Returns:
         None
@@ -153,12 +180,12 @@ def grid_leeway_method(nonogram: Nonogram, current_grid: NonogramGrid) -> None:
     for i in range(0, n_row):
         current_row = current_grid.get_row(i)
         row_clues = nonogram.get_row_clues(i)
-        line_leeway_method(line_clues=row_clues, current_line=current_row)
+        line_leeway_solving_method(line_array=current_row, line_clues=row_clues)
 
     for j in range(0, n_col):
         current_col = current_grid.get_col(j)
         col_clues = nonogram.get_col_clues(j)
-        line_leeway_method(line_clues=col_clues, current_line=current_col)
+        line_leeway_solving_method(line_array=current_col, line_clues=col_clues)
 
 
 # Everything below: no tests yet
