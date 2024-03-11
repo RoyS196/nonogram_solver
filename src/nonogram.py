@@ -75,7 +75,7 @@ class LineClues:
         color_checker_array = np.array(block_colors[1:]) - np.array(block_colors[:-1])
         repeating_colors_count = sum(color_checker_array == 0)
         # Successive repeating colors need a seperating empty square (value/color 0)
-        min_length = sum(block_colors) + repeating_colors_count
+        min_length = sum(block_sizes) + repeating_colors_count
 
         if min_length > line_length:
             msg = f"line_length {(line_length)} value smaller then minimal line length {(min_length)}"
