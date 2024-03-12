@@ -188,6 +188,58 @@ def grid_leeway_solving_method(current_grid: NonogramGrid, nonogram: Nonogram) -
         line_leeway_solving_method(line_array=current_col, line_clues=col_clues)
 
 
+def determine_all_possible_lines(line_clues: LineClues, base_line: np.ndarray = None) -> set[tuple[int, ...]]:
+    """Returns a set of equally sized tuples of integers representing all possible lines, given line clues.
+
+    All line possibilities are determined, given the line clues. If a base line is passed, determine for all
+    potential lines its compatibility with the base line. Only compatible lines are added to the returned set (as
+    tuples).
+
+    Args:
+        line_clues (LineCLues):  object that contains the block sizes, block colors and line length.
+        current_line (np.ndarray, optional): array against which all potential lines are check for compatibility
+
+    Returns:
+        A set of equally sized tuples of integers. Can be an empty set.
+    """
+    # If no current_line is passed, do not check if potential lines are compatible
+    check_against_current_line = base_line is not None
+
+    # obtain values from LineClues object
+    block_sizes = line_clues.block_sizes
+    block_colors = line_clues.block_colors
+    leeway = line_clues.leeway
+    n_blocks = line_clues.n_blocks
+    line_length = line_clues.line_length
+
+    # take into account necessary 0's separating successive blocks of the same color
+    repeating_colors_array = (np.array(block_colors[1:]) == np.array(block_colors[:-1])).astype(int)
+
+    # Use set of tuples for now to hold possible lines (alternative: list of lists/arrays)
+    possible_lines = set()
+
+    """Use itertools combinations to determine all possible lines. Determine all possible orders of colored blocks
+    (including possibly 0's that are necessary to separate successive blocks of the same color), and the remaining
+    empty square that make up the leeway (leeway 0's). Append all possible lines are to a list."""
+    for combination in combinations(range(0, leeway + n_blocks), n_blocks):
+        potential_line = np.full((line_length,), 0)
+
+        for i, c in enumerate(combination):
+            """The start of the block is calculated by the sum of all preceding blocks + sum of all preceding necessary
+            0's separating successive blocks of the same color + all preceding leeway 0's (equal to c - i)"""
+            block_start = sum(block_sizes[:i]) + sum(repeating_colors_array[:i]) + c - i
+            block_end = block_start + block_sizes[i]
+            potential_line[block_start:block_end] = line_clues.block_colors[i]
+
+        if check_against_current_line:
+            if check_arrays_compatibility(array_1=base_line, array_2=potential_line):
+                possible_lines.add(tuple(potential_line))
+        else:
+            possible_lines.add(tuple(potential_line))
+
+    return possible_lines
+
+
 # Everything below: no tests yet
 # def calculate_initial_line_priority(line_clues: LineClues, current_line: np.ndarray = None) -> float:
 #     priority = line_clues.line_length - line_clues.min_length  # leeway
@@ -215,34 +267,6 @@ def grid_leeway_solving_method(current_grid: NonogramGrid, nonogram: Nonogram) -
 #         priority_queue.put((priority, "col", j))
 
 #     return priority_queue
-
-
-# # TODO: method description
-# def determine_line_combinations(line_clues_object: LineClues, current_line=None) -> list[np.ndarray]:
-#     check_against_current_line = current_line is not None
-#     potential_lines = []
-
-#     # obtain values from LineClues object
-#     block_sizes = line_clues_object.block_sizes
-#     block_colors = line_clues_object.block_colors
-#     leeway = line_clues_object.leeway
-#     n_blocks = line_clues_object.n_blocks
-#     line_length = line_clues_object.line_length
-
-#     # Determine all potential lines using combinations
-#     for combination in combinations(range(0, leeway + n_blocks), n_blocks):
-#         potential_line = np.full((line_length,), 0)
-#         sum_of_blocks = 0
-#         for i, c in enumerate(combination):
-#             potential_line[sum_of_blocks + c:sum_of_blocks + c + line_clues_object.get_block_size(i)] = block_colors[i]
-#             sum_of_blocks += block_sizes[i]
-#         if check_against_current_line:
-#             if check_potential_line(potential_line=potential_line, current_line=current_line):
-#                 potential_lines.append(potential_line)
-#         else:
-#             potential_lines.append(potential_line)
-
-#     return potential_lines
 
 
 # # Creates two initial listsof possible row/columns, given initial grid (if no initial grid, do not check)

@@ -9,7 +9,7 @@ class LineClues:
     order of the block sizes (and colors) corresponds to the order of the blocks in the specific line in the puzzle
     solution. The class also contains the length of the line."""
 
-    def __init__(self, block_sizes: tuple[int], line_length: int, block_colors: tuple[int] = None):  # noqa: C901
+    def __init__(self, block_sizes: tuple[int, ...], line_length: int, block_colors: tuple[int, ...] = None):  # noqa: C901
         """Initializes the line clues class object, given the block sizes (in squares), line length and optionally the
         block colors.
 
@@ -72,8 +72,7 @@ class LineClues:
                 raise ValueError(msg)
 
         # Calculate the minimal line length that could contain the blocks, using the sizes and colors
-        color_checker_array = np.array(block_colors[1:]) - np.array(block_colors[:-1])
-        repeating_colors_count = sum(color_checker_array == 0)
+        repeating_colors_count = sum(np.array(block_colors[1:]) == np.array(block_colors[:-1]))
         # Successive repeating colors need a seperating empty square (value/color 0)
         min_length = sum(block_sizes) + repeating_colors_count
 
@@ -152,12 +151,15 @@ class LineClues:
 class Nonogram:
     """Class that represents the nonogram puzzle."""
 
-    def __init__(self, row_clues_tuple: tuple[LineClues], col_clues_tuple: tuple[LineClues]):
+    def __init__(self, row_clues_tuple: tuple[LineClues, ...], col_clues_tuple: tuple[LineClues, ...]):
         """Initializes the nonogram class object, given all row clues and column clues.
 
+        The row clues in the tuple are ordered from top to bottom, the column clues in the tuple are ordered from left
+        to right.
+
         Args:
-            row_clues_tuple (tuple[LineClues]): tuple of LineClues objects representing all row clues (top to bottom)
-            col_clues_tuple (tuple[LineClues]): tuple of LineClues objects representing all column clues (left to right)
+            row_clues_tuple (tuple[LineClues, ...]): tuple of LineClues objects representing all row clues
+            col_clues_tuple (tuple[LineClues, ...]): tuple of LineClues objects representing all column clues
 
         Raises:
             TypeError: if row_clues_list or col_clues_list is not a tuple of LineClues objects.
@@ -312,7 +314,7 @@ class NonogramGrid():
         return self.grid_array[row_col_ij]
 
     @classmethod
-    def instantiate_empty_grid(cls, n_row, n_col):
+    def instantiate_empty_grid(cls, n_row: int, n_col: int):
         """Returns an instance of the nonogram grid class, with an empty grid array (containing only values -1).
 
         Args:
