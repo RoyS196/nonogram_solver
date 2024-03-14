@@ -1,9 +1,8 @@
 import numpy as np
 import logging
 from itertools import combinations
-from queue import PriorityQueue, Empty
 
-from nonogram import LineClues, Nonogram, NonogramGrid
+from nonogram import LineClues, Nonogram, NonogramGrid, LinePriorityQueue
 
 
 def check_arrays_compatibility(array_1: np.ndarray, array_2: np.ndarray) -> bool:
@@ -22,18 +21,15 @@ def check_arrays_compatibility(array_1: np.ndarray, array_2: np.ndarray) -> bool
     Raises:
         ValueError: if the shape of array_1 and array_2 are not equal.
     """
-    # Copy arrays to prevent mutating the original
     array_1_copy = array_1.copy()
     array_2_copy = array_2.copy()
 
-    # Change every value of -1 to the corresponding value of the other array
     array_1_copy[array_1_copy == -1] = array_2[array_1_copy == -1]
     array_2_copy[array_2_copy == -1] = array_1[array_2_copy == -1]
 
     return np.array_equal(array_1_copy, array_2_copy)
 
 
-# TODO: update current_line or return new line
 def update_array_values(base_array: np.ndarray, array_update: np.ndarray) -> None:
     """Updates all values equal to -1 of numpy array to corresponding values of other numpy array.
 
@@ -182,9 +178,9 @@ def grid_leeway_solving_method(current_grid: NonogramGrid, nonogram: Nonogram) -
         row_clues = nonogram.get_row_clues(i)
         line_leeway_solving_method(line_array=current_row, line_clues=row_clues)
 
-    for j in range(0, n_col):
-        current_col = current_grid.get_col(j)
-        col_clues = nonogram.get_col_clues(j)
+    for i in range(0, n_col):
+        current_col = current_grid.get_col(i)
+        col_clues = nonogram.get_col_clues(i)
         line_leeway_solving_method(line_array=current_col, line_clues=col_clues)
 
 
