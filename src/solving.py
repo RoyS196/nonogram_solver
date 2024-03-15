@@ -1,5 +1,6 @@
 import numpy as np
 import logging
+from copy import copy
 from itertools import combinations
 
 from nonogram import LineClues, Nonogram, NonogramGrid, LinePriorityQueue
@@ -88,7 +89,7 @@ def obtain_arrays_intersection(list_arrays: list[np.ndarray]) -> np.ndarray:
     return intersection_array
 
 
-def line_leeway_solving_method(line_array: np.ndarray, line_clues: LineClues) -> None:
+def line_leeway_solving_step(line_clues: LineClues, line_array: np.ndarray) -> None:
     """Updates line (1d) array based on nonogram line clues using the leeway solving method.
 
     The 'leeway' of a block/line in a nonogram is the number of squares a block can move, based only on the line clues
@@ -161,7 +162,7 @@ def line_leeway_solving_method(line_array: np.ndarray, line_clues: LineClues) ->
     update_array_values(base_array=line_array, array_update=new_line)
 
 
-def grid_leeway_solving_method(current_grid: NonogramGrid, nonogram: Nonogram) -> None:
+def grid_leeway_solving_step(nonogram: Nonogram, current_grid: NonogramGrid) -> None:
     """Updates nonogram grid using the leeway solving method on every row/column of nonogram grid.
 
     Args:
@@ -171,20 +172,16 @@ def grid_leeway_solving_method(current_grid: NonogramGrid, nonogram: Nonogram) -
     Returns:
         None
     """
-    n_row, n_col = nonogram.n_row, nonogram.n_col
+    shape = nonogram.shape
 
-    for i in range(0, n_row):
-        current_row = current_grid.get_row(i)
-        row_clues = nonogram.get_row_clues(i)
-        line_leeway_solving_method(line_array=current_row, line_clues=row_clues)
-
-    for i in range(0, n_col):
-        current_col = current_grid.get_col(i)
-        col_clues = nonogram.get_col_clues(i)
-        line_leeway_solving_method(line_array=current_col, line_clues=col_clues)
+    for row_or_col, n_line in enumerate(shape):
+        for i in range(n_line):
+            current_line = current_grid.get_line(row_or_col=row_or_col, i=i)
+            line_clues = nonogram.get_line_clues(row_or_col=row_or_col, i=i)
+            line_leeway_solving_step(line_clues=line_clues, line_array=current_line)
 
 
-def determine_all_possible_lines(line_clues: LineClues, base_line: np.ndarray = None) -> set[tuple[int, ...]]:
+def determine_possible_lines(line_clues: LineClues, base_line: np.ndarray = None) -> set[tuple[int, ...]]:
     """Returns a set of equally sized tuples of integers representing all possible lines, given line clues.
 
     All line possibilities are determined, given the line clues. If a base line is passed, determine for all
@@ -234,64 +231,6 @@ def determine_all_possible_lines(line_clues: LineClues, base_line: np.ndarray = 
             possible_lines.add(tuple(potential_line))
 
     return possible_lines
-
-
-# Everything below: no tests yet
-# def calculate_initial_line_priority(line_clues: LineClues, current_line: np.ndarray = None) -> float:
-#     priority = line_clues.line_length - line_clues.min_length  # leeway
-#     if current_line is not None:
-#         pass  # TODO: take current line into account
-
-#     return priority
-
-
-# # TODO: function description
-# def calculate_initial_priority_queue(nonogram: Nonogram, current_grid: NonogramGrid = None) -> PriorityQueue:
-#     n_row, n_col = nonogram.n_row, nonogram.n_col
-#     priority_queue = PriorityQueue()
-
-#     for i in range(0, n_row):
-#         current_row = current_grid.get_row(i)
-#         row_clues = nonogram.get_row_clues(i)
-#         priority = calculate_initial_line_priority(line_clues=row_clues, current_line=current_row)
-#         priority_queue.put((priority, "row", i))
-
-#     for j in range(0, n_col):
-#         current_col = current_grid.get_col(j)
-#         col_clues = nonogram.get_col_clues(j)
-#         priority = calculate_initial_line_priority(line_clues=col_clues, current_line=current_col)
-#         priority_queue.put((priority, "col", j))
-
-#     return priority_queue
-
-
-# # Creates two initial listsof possible row/columns, given initial grid (if no initial grid, do not check)
-# def initialize_potential_lines(nonogram: Nonogram, current_grid: NonogramGrid) -> tuple[list[np.ndarray], list[np.ndarray]]:
-#     n_row = nonogram.n_row
-#     n_col = nonogram.n_col
-
-#     potential_rows = []
-#     for i in range(0, n_row):
-#         current_row = None
-#         if current_grid is not None:
-#             current_row = current_grid.get_row(i)
-#         potential_rows.append(determine_line_combinations(line_clues_object=nonogram.row_clues_tuple[i], current_line=current_row))
-#     potential_rows = tuple(potential_rows)
-
-#     potential_cols = []
-#     for j in range(0, n_col):
-#         current_line = None
-#         if current_grid is not None:
-#             current_line = current_grid.get_col(j)
-#         potential_cols.append(determine_line_combinations(line_clues_object=nonogram.col_clues_tuple[i], current_line=current_line))
-#     potential_cols = tuple(potential_cols)
-
-#     return potential_rows, potential_cols
-
-
-# # TODO: function description
-# def queue_solution_method(nonogram: Nonogram, current_grid: NonogramGrid = None, prio_queue: PriorityQueue = None) -> None:
-#     pass  # TODO
 
 
 if __name__ == "__main__":
