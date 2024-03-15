@@ -1,3 +1,4 @@
+import heapq
 import logging
 import numpy as np
 
@@ -9,7 +10,7 @@ class LineClues:
     order of the block sizes (and colors) corresponds to the order of the blocks in the specific line in the puzzle
     solution. The class also contains the length of the line."""
 
-    def __init__(self, block_sizes: tuple[int, ...], line_length: int, block_colors: tuple[int, ...] = None):  # noqa: C901
+    def __init__(self, block_sizes: tuple[int, ...], line_length: int, block_colors: tuple[int, ...] = None) -> None:  # noqa: C901
         """Initializes the line clues class object, given the block sizes (in squares), line length and optionally the
         block colors.
 
@@ -109,12 +110,12 @@ class LineClues:
         return f"""BlockClues object. block_sizes: {self.block_sizes}, line_length: {self.line_length}, block_colors:
         {self.block_colors}"""
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """Returns True if the LineClues object has no blocks and False otherwise.
 
         Returns:
             A boolean."""
-        return self.block_sizes == ()
+        return not bool(self.block_sizes)
 
     def get_block_size(self, i: int) -> int:
         """Returns the size of the i-th block.
@@ -151,43 +152,39 @@ class LineClues:
 class Nonogram:
     """Class that represents the nonogram puzzle."""
 
-    def __init__(self, row_clues_tuple: tuple[LineClues, ...], col_clues_tuple: tuple[LineClues, ...]):
+    def __init__(self, all_line_clues: tuple[tuple[LineClues, ...], tuple[LineClues, ...]]) -> None:
         """Initializes the nonogram class object, given all row clues and column clues.
 
         The row clues in the tuple are ordered from top to bottom, the column clues in the tuple are ordered from left
         to right.
 
         Args:
-            row_clues_tuple (tuple[LineClues, ...]): tuple of LineClues objects representing all row clues
-            col_clues_tuple (tuple[LineClues, ...]): tuple of LineClues objects representing all column clues
+            all_line_clues: tuple[tuple[LineClues, ...], tuple[LineClues, ...]]: 2-tuple with respectively a tuple of
+            all row clues and a tuple of all column clues of the nonogram
 
         Raises:
-            TypeError: if row_clues_list or col_clues_list is not a tuple of LineClues objects.
-            ValueError: if a LineClues object in row_clues_tuple has a minimal length larger then number of columns
-            ValueError: if a LineClues object in col_clues_tuple has a minimal length larger then number of rows
+            TypeError: if the tuples in all_line_clues are not tuples of LineClues objects.
+            ValueError: if a LineClues object in all_line_clues has a minimal length larger then number of columns
         """
 
-        if not all(isinstance(i, LineClues) for i in row_clues_tuple + col_clues_tuple):
+        if not all(isinstance(i, LineClues) for i in all_line_clues[0] + all_line_clues[1]):
             msg = "Arguments must be tuples of LineClues classes"
             logging.error(msg)
             raise TypeError(msg)
 
-        self.row_clues_tuple = row_clues_tuple
-        self.col_clues_tuple = col_clues_tuple
-        self.n_row = len(row_clues_tuple)
-        self.n_col = len(col_clues_tuple)
+        self.all_line_clues = all_line_clues
+        self.all_row_clues = all_line_clues[0]
+        self.all_col_clues = all_line_clues[1]
+        self.n_row = len(self.all_row_clues)
+        self.n_col = len(self.all_col_clues)
         self.shape = (self.n_row, self.n_col)
 
-        for row_clues in row_clues_tuple:
-            if row_clues.min_length > self.n_col:
-                msg = f"LineClues: {row_clues} in row_clues_tuple is too large for puzzle dimensions: {self.shape}"
-                logging.error(msg)
-                raise ValueError(msg)
-        for col_clues in col_clues_tuple:
-            if col_clues.min_length > self.n_row:
-                msg = f"LineClues: {col_clues} in col_clues_tuple is too large for puzzle dimensions: {self.shape}"
-                logging.error(msg)
-                raise ValueError(msg)
+        for row_or_col, all_rowcol_clues in enumerate(self.all_line_clues):
+            for line_clues in all_rowcol_clues:
+                if line_clues.min_length > self.shape[row_or_col - 1]:
+                    msg = f"LineClues: {line_clues} too large for puzzle dimensions: {self.shape}"
+                    logging.error(msg)
+                    raise ValueError(msg)
 
     def __str__(self):
         return f"Row clues: {str(self.row_clues_tuple)}.\nColumn clues: {str(self.col_clues_tuple)}"
@@ -195,7 +192,7 @@ class Nonogram:
     def __repr__(self):
         return f"Row clues: {str(self.row_clues_tuple)}.\nColumn clues: {str(self.col_clues_tuple)}"
 
-    def get_row_clues(self, i: int):
+    def get_row_clues(self, i: int) -> LineClues:
         """Returns the LineClues object representing the i-th row of the nonogram puzzle.
 
         Args:
@@ -203,17 +200,28 @@ class Nonogram:
 
         Returns:
             The LineClues object representing the i-th row of the nonogram puzzle."""
-        return self.row_clues_tuple[i]
+        return self.all_row_clues[i]
 
-    def get_col_clues(self, j: int):
-        """Returns the LineClues object representing the j-th column of the nonogram puzzle.
+    def get_col_clues(self, i: int) -> LineClues:
+        """Returns the LineClues object representing the i-th column of the nonogram puzzle.
 
         Args:
-            j (int): index of the column which LineClues are returned.
+            i (int): index of the column which LineClues are returned.
 
         Returns:
-            The LineClues object representing the j-th column of the nonogram puzzle."""
-        return self.col_clues_tuple[j]
+            The LineClues object representing the i-th column of the nonogram puzzle."""
+        return self.all_col_clues[i]
+
+    def get_line_clues(self, row_or_col: int, i: int):
+        """Returns the LineClues object representing the i-th row/column of the nonogram puzzle.
+
+        Args:
+            row_or_col (int): integer that determines if method is applied to row (0) or column (1)
+            i (int): index of the row/column of which LineClues are returned.
+
+        Returns:
+            The LineClues object representing the i-th column of the nonogram puzzle."""
+        return self.all_line_clues[row_or_col][i]
 
 
 class NonogramGrid():
@@ -224,7 +232,7 @@ class NonogramGrid():
     The grid can be completely filled in (only integers >= 0), but also not complete (also containing integers -1). The
     grid can be mutated."""
 
-    def __init__(self, grid_array: np.ndarray):
+    def __init__(self, grid_array: np.ndarray) -> None:
         """Initializes the class object, given the grid array.
 
         Args:
@@ -259,7 +267,7 @@ class NonogramGrid():
     def __copy__(self):
         return NonogramGrid(grid_array=self.grid_array.copy())
 
-    def set_row(self, i: int, row_array: np.ndarray):
+    def set_row(self, i: int, row_array: np.ndarray) -> None:
         """Sets the i-th row of the nonogram grid to the given row.
 
         Args:
@@ -267,24 +275,36 @@ class NonogramGrid():
             row_array (np.ndarray): row to which the nonogram grid row is set."""
         self.grid_array[i, :] = row_array
 
-    def set_col(self, j: int, col_array: np.ndarray):
-        """Sets the j-th column of the nonogram grid to the given column.
+    def set_col(self, i: int, col_array: np.ndarray) -> None:
+        """Sets the i-th column of the nonogram grid to the given column.
 
         Args:
-            j (int): index of the nonogram grid column which is set to the given column.
+            i (int): index of the nonogram grid column which is set to the given column.
             col_array (np.ndarray): column to which the nonogram grid column is set."""
-        self.grid_array[:, j] = col_array
+        self.grid_array[:, i] = col_array
 
-    def set_value(self, row_col_ij: tuple[int, int], value: int):
-        """Sets the (i,j)-th element of the nonogram grid to the given value.
+    def set_line(self, row_or_col: int, i: int, line_array: np.ndarray) -> None:
+        """Sets the i-th line (row or column) of the nonogram grid to the given line.
 
         Args:
-            row_col_ij (tuple[int, int]): index of the nonogram grid element which is set to the given value.
-            value (int): value to which the nonogram grid element is set."""
-        self.grid_array[row_col_ij] = value
+            row_or_col (int): integer that determines if method is applied to row (0) or column (1)
+            i (int): index of the nonogram grid line which is set to the given line.
+            line_array (np.ndarray): line to which the nonogram grid line is set."""
+        if row_or_col == 0:
+            self.set_row(i=i, row_array=line_array)
+        elif row_or_col == 1:
+            self.set_col(i=i, col_array=line_array)
 
-    def get_row(self, i: int):
-        """Returns i-th row of the nonogram grid.
+    def set_value(self, row_col_index: tuple[int, int], value: int) -> None:
+        """Sets the index-specified element of the nonogram grid to the given value.
+
+        Args:
+            row_col_index (tuple[int, int]): index of the nonogram grid element which is set to the given value.
+            value (int): value to which the nonogram grid element is set."""
+        self.grid_array[row_col_index] = value
+
+    def get_row(self, i: int) -> np.ndarray:
+        """Return i-th row of the nonogram grid.
 
         Args:
             i (int): index of the row which is returned.
@@ -293,28 +313,42 @@ class NonogramGrid():
             The numpy array that is the i-th row of the nonogram grid."""
         return self.grid_array[i, :]
 
-    def get_col(self, j: int):
-        """Returns j-th column of the nonogram grid.
+    def get_col(self, i: int) -> np.ndarray:
+        """Returns i-th column of the nonogram grid.
 
         Args:
-            j (int): index of the column which is returned.
+            i (int): index of the column which is returned.
 
         Returns:
-            The numpy array that is the j-th column of the nonogram grid."""
-        return self.grid_array[:, j]
+            The numpy array that is the i-th column of the nonogram grid."""
+        return self.grid_array[:, i]
 
-    def get_value(self, row_col_ij: tuple[int, int]):
-        """Returns the value of the (i,j)-th element of the nonogram grid.
+    def get_line(self, row_or_col: int, i: int) -> np.ndarray:
+        """Returns i-th line (row or column) of the nonogram grid.
 
         Args:
-            row_col_ij (tuple[int, int]): index of the nonogram grid element values which is returned.
+            row_or_col (int): integer that determines if method is applied to row (0) or column (1)
+            i (int): index of the line which is returned.
 
         Returns:
-            The integer value of the (i,j)-th element of the nonogram grid."""
-        return self.grid_array[row_col_ij]
+            The numpy array that is the i-th line of the nonogram grid."""
+        if row_or_col == 0:
+            return self.get_row(i=i)
+        elif row_or_col == 1:
+            return self.get_col(i=i)
+
+    def get_value(self, row_col_index: tuple[int, int]) -> int:
+        """Returns the value of the index-specified element of the nonogram grid.
+
+        Args:
+            row_col_index (tuple[int, int]): index of the nonogram grid element value which is returned.
+
+        Returns:
+            The integer value of the index-specified element of the nonogram grid."""
+        return self.grid_array[row_col_index]
 
     @classmethod
-    def instantiate_empty_grid(cls, n_row: int, n_col: int):
+    def instantiate_empty_grid(cls, n_row: int, n_col: int) -> 'NonogramGrid':
         """Returns an instance of the nonogram grid class, with an empty grid array (containing only values -1).
 
         Args:
@@ -326,3 +360,73 @@ class NonogramGrid():
         grid_array = np.full((n_row, n_col), -1)
 
         return cls(grid_array=grid_array)
+
+
+class LinePriorityQueue():
+    """Class that assigns lines to a priority queue.
+
+    The class prevents having duplicate line in the queue, by using an set to keep track of the lines in the queue. When
+    pushing lines to the queue, duplicates are replaced if they have higher priority. Priorities are tracked in separate
+    priority tracker to accommodate this."""
+
+    def __init__(self, n_row: int, n_col: int) -> None:
+        """Initialize empty line priority queue.
+
+        Nonogram dimensions are needed to build the priority tracker.
+
+        Args:
+            n_row (int): number of rows of the nonogram, for which line priority queue is used.
+            n_col (int): number of columns of the nonogram, for which line priority queue is used.
+        """
+        self.priority_queue = []
+        self.queue_set = set()
+        self.priority_tracker = (n_row * [0,], n_col * [0,])
+
+    def push(self, item: tuple[float, tuple[int, int]]) -> None:
+        """Push item to line priority queue.
+
+        Args:
+            item (tuple[float, tuple[int, int]]): contains the priority of the line-tuple, and the line-tuple itself.
+                                                  the line-tuple consists of an integer 0 or 1 representing whether the
+                                                  line is a row or column respectively, and an index of the line.
+        """
+        priority, (row_or_col, line_index) = item
+
+        if (row_or_col, line_index) in self.queue_set:
+            current_priority = self.priority_tracker[row_or_col][line_index]
+
+            if priority < current_priority:
+                self.priority_queue.remove((current_priority, (row_or_col, line_index)))
+                heapq.heapify(self.priority_queue)
+                heapq.heappush(self.priority_queue, item)
+                self.priority_tracker[row_or_col][line_index] = priority
+
+        else:
+            heapq.heappush(self.priority_queue, item)
+            self.queue_set.add((row_or_col, line_index))
+            self.priority_tracker[row_or_col][line_index] = priority
+
+    def pop(self) -> tuple[float, tuple[int, int]]:
+        """Returns and removes the item with the highest priority (lowest priority value) from the queue.
+
+        Returns:
+            A 2-tuple with a float (priority) and another 2-tuple representing the line of the nonogram (First item: an
+            integer 0 or 1 representing whether the line is a row or column respectively. Second item: an integer
+            representing index of the line itself. """
+        try:
+            item = heapq.heappop(self.priority_queue)
+            (row_or_col, line_index) = item[1]
+            self.queue_set.remove((row_or_col, line_index))
+            self.priority_tracker[row_or_col][line_index] = 0
+            return (row_or_col, line_index)
+
+        # If queue is empty, return None
+        except IndexError:
+            return None
+
+    def is_empty(self):
+        """Returns True if queue is empty, False otherwise.
+
+        Returns:
+            A boolean, True if queue is empty, False otherwise."""
+        return not bool(self.priority_queue)

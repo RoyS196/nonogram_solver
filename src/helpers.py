@@ -1,4 +1,5 @@
 import numpy as np
+
 from nonogram import LineClues, Nonogram, NonogramGrid
 
 
@@ -62,13 +63,15 @@ def obtain_nonogram_from_grid(nonogram_grid: NonogramGrid) -> Nonogram:
 
     # TODO: deal with not completely filled in grid (-1), raise error?
     grid_array = nonogram_grid.grid_array
-    row_clues_list = []
-    col_clues_list = []
+    all_row_clues_list = []
+    all_col_clues_list = []
 
     for row_array in grid_array:
-        row_clues_list.append(obtain_line_clues_from_line(row_array))
+        all_row_clues_list.append(obtain_line_clues_from_line(row_array))
 
     for col_array in grid_array.T:
-        col_clues_list.append(obtain_line_clues_from_line(col_array))
+        all_col_clues_list.append(obtain_line_clues_from_line(col_array))
 
-    return Nonogram(row_clues_tuple=tuple(row_clues_list), col_clues_tuple=tuple(col_clues_list))
+    all_line_clues = (tuple(all_row_clues_list), tuple(all_col_clues_list))
+
+    return Nonogram(all_line_clues=all_line_clues)

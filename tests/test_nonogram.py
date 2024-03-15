@@ -69,19 +69,19 @@ class TestClass:
     line_clues_colored_repeating = LineClues(block_sizes=(4, 1, 3), line_length=10, block_colors=[1, 1, 2])
     result_colored_repeating = np.array(object=[-1, 1, 1, 1, -1, -1, -1, 2, 2, -1])
 
-    @pytest.mark.parametrize("line_array, line_clues, result",
-                             [(line_array_empty, line_clues_zeros, result_zeros),
-                              (line_array_empty, line_clues_ones, result_ones),
-                              (line_array_empty, line_clues_full, result_full),
-                              (line_array_empty, line_clues_overlap, result_overlap),
-                              (line_array_empty, line_clues_no_overlap, result_no_overlap),
-                              (line_array_empty, line_clues_colored, result_colored),
-                              (line_array_empty, line_clues_colored_repeating, result_colored_repeating),
+    @pytest.mark.parametrize("line_clues, line_array, result",
+                             [(line_clues_zeros, line_array_empty, result_zeros),
+                              (line_clues_ones, line_array_empty, result_ones),
+                              (line_clues_full, line_array_empty, result_full),
+                              (line_clues_overlap, line_array_empty, result_overlap),
+                              (line_clues_no_overlap, line_array_empty, result_no_overlap),
+                              (line_clues_colored, line_array_empty, result_colored),
+                              (line_clues_colored_repeating, line_array_empty, result_colored_repeating),
                               ])
-    def test_line_leeway_solving_method(self, line_array: np.ndarray, line_clues: LineClues, result: np.ndarray):
+    def test_line_leeway_solving_step(self, line_clues: LineClues, line_array: np.ndarray, result: np.ndarray):
         line_array_copy = line_array.copy()
 
-        solving.line_leeway_solving_method(line_array=line_array_copy, line_clues=line_clues)
+        solving.line_leeway_solving_step(line_clues=line_clues, line_array=line_array_copy)
 
         np.testing.assert_array_equal(line_array_copy, result)
 
@@ -94,7 +94,7 @@ class TestClass:
         grid_leeway = helpers.obtain_grid_from_csv(filename=f"{project_folder}/tests/test_files/grid_monalisa_leeway.csv")
         nonogram = helpers.obtain_nonogram_from_grid(nonogram_grid=grid_complete)
 
-        solving.grid_leeway_solving_method(current_grid=grid_test, nonogram=nonogram)
+        solving.grid_leeway_solving_step(nonogram=nonogram, current_grid=grid_test)
 
         np.testing.assert_array_equal(grid_test.grid_array, grid_leeway.grid_array)
 
@@ -122,6 +122,6 @@ class TestClass:
                               (line_clues, base_line, result_base_line),
                               (line_clues, base_line_impossible, result_empty_set),
                               ])
-    def test_determine_all_possible_lines(self, line_clues, base_line, result):
+    def test_determine_possible_lines(self, line_clues, base_line, result):
 
-        assert solving.determine_all_possible_lines(line_clues=line_clues, base_line=base_line) == result
+        assert solving.determine_possible_lines(line_clues=line_clues, base_line=base_line) == result
